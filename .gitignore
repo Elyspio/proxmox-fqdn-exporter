@@ -1,0 +1,6 @@
+﻿Proxmox.Fqdn.Exporter.Tests
+bin
+obj
+.idea
+Deployment/build/out
+*.user

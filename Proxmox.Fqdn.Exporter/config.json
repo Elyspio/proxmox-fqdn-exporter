@@ -1,0 +1,12 @@
+﻿{
+	"SubnetFilter": "192.168.0.0/24",
+	"Export": {
+		"Console": true,
+		"Pihole": {
+			"Id": 104,
+			"ListFilePath": "/etc/pihole/hosts/custom.list",
+			"ExecutablePath": "/usr/local/bin/pihole",
+			"Type": "Container"
+		}
+	}
+}
