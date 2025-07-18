@@ -10,44 +10,48 @@ jobs:
         runs-on: ubuntu-latest
         
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+            -   name: Checkout code
+                uses: actions/checkout@v4
+                with:
+                    fetch-depth: '0'
 
-            - name: Setup .NET
-              uses: actions/setup-dotnet@v4
-              with:
-                  dotnet-version: '9.0.x'
+            -   name: Setup .NET
+                uses: actions/setup-dotnet@v4
+                with:
+                    dotnet-version: '9.0.x'
+                    cache: true
+                    cache-dependency-path: Proxmox.Fqdn.Exporter/Proxmox.Fqdn.Exporter.csproj
 
-            - name: Publish AOT binary
-              working-directory: Proxmox.Fqdn.Exporter
-              run: |
-                  dotnet publish -c Release -r linux-x64 /p:PublishAot=true -o publish
+            -   name: Publish AOT binary
+                working-directory: Proxmox.Fqdn.Exporter
+                run: dotnet publish -c Release -r linux-x64 /p:PublishAot=true -o publish
 
-            - name: Get last commit message
-              id: get_commit
-              run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+            -   name: Get last commit message
+                id: get_commit
+                run: echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
 
-            - name: Get last tag
-              id: get_tag
-              run: echo "tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+            -   name: Get last tag
+                id: get_tag
+                run: echo "tag=$(git describe --abbrev=0 --tags `git rev-list --tags --skip=1 --max-count=1`)" >> $GITHUB_OUTPUT
 
-            - name: Get changelog since last tag
-              id: get_changelog
-              run: |
-                echo "changelog<<EOF" >> $GITHUB_OUTPUT
-                git log ${{ steps.get_tag.outputs.tag }}..HEAD --pretty=format:"- %s (%h)" >> $GITHUB_OUTPUT
-                echo "EOF" >> $GITHUB_OUTPUT
+            -   name: Get changelog since last tag
+                id: get_changelog
+                run: |
+                    log=$(git log ${{ steps.get_tag.outputs.tag }}..HEAD --pretty=format:"- %s (%h)")
+                    echo "changelog<<EOF" >> $GITHUB_OUTPUT
+                    echo "$log" >> $GITHUB_OUTPUT
+                    echo "EOF" >> $GITHUB_OUTPUT    
 
-            - name: Create Release
-              uses: softprops/action-gh-release@v1
-              with:
-                  tag_name: ${{ github.ref_name }}
-                  name: Release ${{ github.ref_name }}
-                  body: |
-                    New release of Proxmox FQDN Exporter ${{ github.ref_name }}
-
-                    Changelog since last release (${{ steps.get_tag.outputs.tag }}):
-                    ${{ steps.get_changelog.outputs.changelog }}
-                  files: Proxmox.Fqdn.Exporter/publish/Proxmox.Fqdn.Exporter
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            -   name: Create Release
+                uses: softprops/action-gh-release@v1
+                with:
+                    tag_name: ${{ github.ref_name }}
+                    name: Release ${{ github.ref_name }}
+                    body: |
+                        New release of Proxmox FQDN Exporter ${{ github.ref_name }}
+                        
+                        Changelog since last release (${{ steps.get_tag.outputs.tag }}):
+                        ${{ steps.get_changelog.outputs.changelog }}
+                    files: Proxmox.Fqdn.Exporter/publish/Proxmox.Fqdn.Exporter
+                env:
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
