@@ -1,0 +1,34 @@
+﻿name: Publish AOT Release
+
+on:
+    push:
+        tags:
+            - 'v*'  # Triggers on version tags like v1.0.0
+
+jobs:
+    build-and-release:
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: '9.0.x'
+
+            - name: Publish AOT binary
+              working-directory: Proxmox.Fqdn.Exporter
+              run: |
+                  dotnet publish -c Release -r linux-x64 /p:PublishAot=true -o publish
+
+            - name: Create Release
+              uses: softprops/action-gh-release@v1
+              with:
+                  tag_name: ${{ github.ref_name }}
+                  name: Release ${{ github.ref_name }}
+                  files: Proxmox.Fqdn.Exporter/publish/Proxmox.Fqdn.Exporter
+              
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
