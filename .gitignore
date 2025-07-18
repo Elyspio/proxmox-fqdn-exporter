@@ -1,5 +1,4 @@
-﻿Proxmox.Fqdn.Exporter.Tests
-bin
+﻿bin
 obj
 .idea
 Deployment/build/out
