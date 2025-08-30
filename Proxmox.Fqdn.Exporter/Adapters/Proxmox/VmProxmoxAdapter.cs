@@ -48,7 +48,7 @@ public class VmProxmoxAdapter : IProxmoxAdapter
 		var vmConfigs = await _processAdapter.RunAsJson<NetworkGetInterfacesResult[]>(runParameters, NetworkGetInterfacesContext.Default);
 
 
-		return vmConfigs.SelectMany(x => x.Ips).First(f => f.Type == "ipv4" && _networkAdapter.IsInSubnet(f.Address)).Address;
+		return vmConfigs.SelectMany(x => x.Ips).First(f => f.Type == "ipv4" && _networkAdapter.IsInSubnets(f.Address)).Address;
 	}
 
 	/// <inheritdoc />

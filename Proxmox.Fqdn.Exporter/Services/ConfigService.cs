@@ -21,7 +21,7 @@ public class ConfigService
 
 	private void Verify(AppConfig config)
 	{
-		if (string.IsNullOrWhiteSpace(config.SubnetFilter)) throw new ArgumentException("SubnetFilter is required in the configuration.");
+		if (config.SubnetsFilter.Length == 0) throw new ArgumentException("SubnetsFilter is required in the configuration.");
 
 		switch (config.Export)
 		{

@@ -13,15 +13,24 @@ public class NetworkAdapter
 		_options = options;
 	}
 
+	
+	
+	public bool IsInSubnets(string ip)
+	{
+		return _options.CurrentValue.SubnetsFilter.Any(cicr => IsInSubnet(cicr, ip));
+	}
+	
+	
 	/// <summary>
 	///     Checks if the given IP address is within the configured subnet.
-	///     See <see cref="AppConfig.SubnetFilter" /> for the expected value format, which should be in CIDR notation
+	///     See <see cref="AppConfig.SubnetsFilter" /> for the expected value format, which should be in CIDR notation
 	/// </summary>
 	/// <param name="ip"></param>
+	/// <param name="cidr"></param>
 	/// <returns></returns>
-	public bool IsInSubnet(string ip)
+	private bool IsInSubnet(string cidr, string ip)
 	{
-		var parts = _options.CurrentValue.SubnetFilter.Split('/');
+		var parts = cidr.Split('/');
 		var networkBytes = IPAddress.Parse(parts[0]).GetAddressBytes().Reverse().ToArray();
 		var ipBytes = IPAddress.Parse(ip).GetAddressBytes().Reverse().ToArray();
 		var prefix = int.Parse(parts[1]);

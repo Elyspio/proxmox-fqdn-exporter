@@ -8,7 +8,7 @@ public class AppConfig
     /// <summary>
     ///     Subnet filter string used to filter network interfaces.
     /// </summary>
-    public required string SubnetFilter { get; set; }
+    public required string[] SubnetsFilter { get; set; }
 
     /// <summary>
     ///     Export configuration options.

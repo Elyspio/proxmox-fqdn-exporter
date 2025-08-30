@@ -49,7 +49,7 @@ public class ContainerProxmoxAdapter : IProxmoxAdapter
 
 		var addresses = result.Split(" ").Select(ip => ip.Trim());
 
-		return addresses.First(addr => _networkAdapter.IsInSubnet(addr));
+		return addresses.First(addr => _networkAdapter.IsInSubnets(addr));
 	}
 
 	/// <inheritdoc />

@@ -6,7 +6,7 @@ RUN apt-get update && \
     build-essential   \ 
     && rm -rf /var/lib/apt/lists/*
 
-COPY Proxmox.Fqdn.Exporter /app
+COPY ../../Proxmox.Fqdn.Exporter /app
 
 WORKDIR /app
 

@@ -1,7 +1,0 @@
-﻿services:
-    publish:
-        build: 
-            context: ../..
-            dockerfile: Deployment/build/Dockerfile
-        volumes:
-            -   "./out:/out"
