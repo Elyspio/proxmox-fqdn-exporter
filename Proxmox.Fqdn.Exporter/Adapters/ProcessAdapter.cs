@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
+using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 
 namespace Proxmox.Fqdn.Exporter.Adapters;
 
@@ -25,41 +26,64 @@ public class ProcessAdapter
 		_logger = logger;
 	}
 
-	public async Task<string> RunAsString(RunParameters param)
+	public async Task<Result<string>> RunAsString(RunParameters param)
 	{
 		_logger.LogDebug($"Running command: {param.Program} {param.Args} in {param.WorkingDirectory}");
 
-		var processStartInfo = new ProcessStartInfo
+
+		var error = "";
+		var exitCode = 0;
+		try
 		{
-			FileName = "/bin/sh",
-			Arguments = $"-c \"{param.Program} {param.Args}\"",
-			UseShellExecute = false,
-			CreateNoWindow = true,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			WorkingDirectory = param.WorkingDirectory
-		};
+			var processStartInfo = new ProcessStartInfo
+			{
+				FileName = "/bin/sh",
+				Arguments = $"-c \"{param.Program} {param.Args}\"",
+				UseShellExecute = false,
+				CreateNoWindow = true,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				WorkingDirectory = param.WorkingDirectory
+			};
 
-		var process = new Process { StartInfo = processStartInfo };
+			var process = new Process { StartInfo = processStartInfo };
 
-		process.Start();
+			process.Start();
 
-		await process.WaitForExitAsync();
+			await process.WaitForExitAsync();
+			exitCode = process.ExitCode;
 
-		var output = await process.StandardOutput.ReadToEndAsync();
-		var error = await process.StandardError.ReadToEndAsync();
+			var output = await process.StandardOutput.ReadToEndAsync();
+			error = await process.StandardError.ReadToEndAsync();
 
-		if (process.ExitCode != 0) throw new Exception($"Command failed with exit code {process.ExitCode}: {error}");
 
-		process.Dispose();
+			if (process.ExitCode != 0)
+			{
+				_logger.LogError("Command '{Program} {Args}' failed with exit code {ExitCode}: {Error}", param.Program, param.Args, process.ExitCode, error.Trim());
+				return new Exception($"Command '{param.Program} {param.Args}' failed with exit code {process.ExitCode}: {error.Trim()}");
+			}
 
-		return output;
+			process.Dispose();
+
+			return output;
+		}
+		catch (Exception e)
+		{
+			_logger.LogError("Command '{Program} {Args}' failed with exit code {ExitCode}: {Error}", param.Program, param.Args, exitCode, error.Trim());
+			return new Exception($"Command '{param.Program} {param.Args}' failed with exit code {exitCode}: {error.Trim()}");
+		}
 	}
 
-	public async Task<T> RunAsJson<T>(RunParameters param, IJsonTypeInfoResolver ctx)
+	public async Task<Result<T>> RunAsJson<T>(RunParameters param, IJsonTypeInfoResolver ctx)
 	{
 		var output = await RunAsString(param);
 
+		if (!output.Success)
+		{
+			_logger.LogError("Failed to run command as JSON: {Error}", output.Error);
+			return output.Error;
+		}
+		
 		return _jsonAdapter.ParseIot<T>(output, ctx);
 	}
 }

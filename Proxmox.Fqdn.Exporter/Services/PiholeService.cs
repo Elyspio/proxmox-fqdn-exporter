@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Proxmox.Fqdn.Exporter.Abstractions.Interfaces.Adapters;
 using Proxmox.Fqdn.Exporter.Adapters.Proxmox;
-using Proxmox.Fqdn.Exporter.Interfaces.Adapters;
 using Proxmox.Fqdn.Exporter.Options;
 
 namespace Proxmox.Fqdn.Exporter.Services;

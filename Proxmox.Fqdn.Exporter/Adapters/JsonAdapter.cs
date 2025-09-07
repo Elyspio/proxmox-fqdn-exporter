@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
+using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 
 namespace Proxmox.Fqdn.Exporter.Adapters;
 
@@ -17,7 +18,7 @@ public class JsonAdapter
 	}
 
 
-	public T ParseIot<T>(string json, IJsonTypeInfoResolver resolver)
+	public Result<T> ParseIot<T>(string json, IJsonTypeInfoResolver resolver)
 	{
 		var options = new JsonSerializerOptions
 		{
@@ -32,7 +33,7 @@ public class JsonAdapter
 		catch (Exception e)
 		{
 			_logger.LogError(e, "Failed to parse JSON data: {Json}", json);
-			throw;
+			return e;
 		}
 	}
 }

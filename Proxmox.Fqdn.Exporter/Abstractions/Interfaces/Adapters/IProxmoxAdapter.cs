@@ -1,6 +1,7 @@
-﻿using Proxmox.Fqdn.Exporter.Data;
+﻿using Proxmox.Fqdn.Exporter.Abstractions.Technical;
+using Proxmox.Fqdn.Exporter.Data;
 
-namespace Proxmox.Fqdn.Exporter.Interfaces.Adapters;
+namespace Proxmox.Fqdn.Exporter.Abstractions.Interfaces.Adapters;
 
 public interface IProxmoxAdapter
 {
@@ -9,7 +10,7 @@ public interface IProxmoxAdapter
 
 	Task<List<ProxmoxElement>> GetAll();
 
-	Task<string> GetIp(short id);
+	Task<Result<string>> GetIp(short id);
 
 	Task ReadFile(short id, string filepath);
 	Task WriteFile(short id, string filepath, string content);

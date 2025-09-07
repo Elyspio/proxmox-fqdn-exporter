@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Microsoft.Extensions.Logging;
+using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 using Proxmox.Fqdn.Exporter.Adapters;
 using Proxmox.Fqdn.Exporter.Adapters.Proxmox;
 
@@ -36,23 +37,49 @@ public class FqdnService
 
 		var ids = await _vmProxmoxAdapter.GetAll();
 
-		var tasks = ids.Select(async x => new Data.Fqdn(
-			await _vmProxmoxAdapter.GetIp(x.Id), x.Name)
-		);
+		var fqdnList = new List<Data.Fqdn>();
 
-		return await Task.WhenAll(tasks);
+
+		var tasks = ids.Select(async x =>
+		{
+			 
+			var ip = await _vmProxmoxAdapter.GetIp(x.Id);
+
+			if (ip.Success)
+			{
+				fqdnList.Add(new Data.Fqdn(ip, x.Name));
+			}
+		});
+
+		await Task.WhenAll(tasks);
+
+		return fqdnList.ToArray();
 	}
 
 
-	public async Task<Data.Fqdn> GetHostFqdn()
+	public async Task<Result<Data.Fqdn>> GetHostFqdn()
 	{
 		_logger.LogInformation("Fetching host FQDN...");
 
 
 		var name = await _processAdapter.RunAsString(RunParameters.FromCommand("hostname"));
+
+		if (!name.Success)
+		{
+			_logger.LogError("Failed to fetch hostname: {Error}", name.Error);
+			return name.Error;
+		}
+
 		var ip = await _processAdapter.RunAsString(RunParameters.FromCommand("hostname -i"));
 
-		return new Data.Fqdn(ip.Trim(), name.Trim());
+
+		if (!ip.Success)
+		{
+			_logger.LogError("Failed to fetch hostname IP: {Error}", ip.Error);
+			return ip.Error;
+		}
+
+		return new Data.Fqdn(ip.Data.Trim(), name.Data.Trim());
 	}
 
 	public async Task<Data.Fqdn[]> GetContainersFqdn()

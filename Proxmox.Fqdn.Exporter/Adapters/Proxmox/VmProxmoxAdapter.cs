@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
+using Proxmox.Fqdn.Exporter.Abstractions.Interfaces.Adapters;
+using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 using Proxmox.Fqdn.Exporter.Data;
-using Proxmox.Fqdn.Exporter.Interfaces.Adapters;
 using Proxmox.Fqdn.Exporter.Options;
 
 namespace Proxmox.Fqdn.Exporter.Adapters.Proxmox;
@@ -24,10 +25,15 @@ public class VmProxmoxAdapter : IProxmoxAdapter
 	{
 		var result = await _processAdapter.RunAsString(RunParameters.FromCommand("/usr/sbin/qm list | awk 'NR>1 {print $1, $2, $3}'"));
 
-
 		var elements = new List<ProxmoxElement>();
 
-		foreach (var line in result.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+		if(!result.Success)
+		{
+			_logger.LogError("Failed to fetch Proxmox VMs: {Error}", result.Error);
+			return elements;
+		}
+		
+		foreach (var line in result.Data.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
 		{
 			_logger.LogDebug("Processing line: {Line}", line);
 
@@ -41,14 +47,18 @@ public class VmProxmoxAdapter : IProxmoxAdapter
 	}
 
 	/// <inheritdoc />
-	public async Task<string> GetIp(short id)
+	public async Task<Result<string>> GetIp(short id)
 	{
 		var runParameters = RunParameters.FromCommand($"/usr/sbin/qm guest cmd {id} network-get-interfaces");
 
 		var vmConfigs = await _processAdapter.RunAsJson<NetworkGetInterfacesResult[]>(runParameters, NetworkGetInterfacesContext.Default);
 
+		if (vmConfigs.Success)
+		{
+			return vmConfigs.Data.SelectMany(x => x.Ips).First(f => f.Type == "ipv4" && _networkAdapter.IsInSubnets(f.Address)).Address;
+		}
 
-		return vmConfigs.SelectMany(x => x.Ips).First(f => f.Type == "ipv4" && _networkAdapter.IsInSubnets(f.Address)).Address;
+		return vmConfigs.Error;
 	}
 
 	/// <inheritdoc />

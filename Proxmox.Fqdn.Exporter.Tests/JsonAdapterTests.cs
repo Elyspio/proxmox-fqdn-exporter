@@ -15,6 +15,8 @@ public class JsonAdapterTests
 
 		var result = sut.ParseIot<NetworkGetInterfacesResult[]>(data, NetworkGetInterfacesContext.Default);
 
-		Assert.NotEmpty(result);
+		Assert.True(result.Success);
+		
+		Assert.NotEmpty(result.Data!);
 	}
 }

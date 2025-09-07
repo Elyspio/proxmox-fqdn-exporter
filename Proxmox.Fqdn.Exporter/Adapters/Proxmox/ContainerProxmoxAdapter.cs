@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
+using Proxmox.Fqdn.Exporter.Abstractions.Interfaces.Adapters;
+using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 using Proxmox.Fqdn.Exporter.Data;
-using Proxmox.Fqdn.Exporter.Interfaces.Adapters;
 using Proxmox.Fqdn.Exporter.Options;
 
 namespace Proxmox.Fqdn.Exporter.Adapters.Proxmox;
@@ -27,7 +28,13 @@ public class ContainerProxmoxAdapter : IProxmoxAdapter
 
 		var elements = new List<ProxmoxElement>();
 
-		foreach (var line in result.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+		if (!result.Success)
+		{
+			_logger.LogError("Failed to fetch Proxmox containers: {Error}", result.Error);
+			return elements;
+		}
+		
+		foreach (var line in result.Data.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
 		{
 			var parts = line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
@@ -39,7 +46,7 @@ public class ContainerProxmoxAdapter : IProxmoxAdapter
 	}
 
 	/// <inheritdoc />
-	public async Task<string> GetIp(short id)
+	public async Task<Result<string>> GetIp(short id)
 	{
 		_logger.LogDebug("Fetching IP for container {Id}", id);
 
@@ -47,7 +54,13 @@ public class ContainerProxmoxAdapter : IProxmoxAdapter
 
 		var result = await _processAdapter.RunAsString(param);
 
-		var addresses = result.Split(" ").Select(ip => ip.Trim());
+		if (!result.Success)
+		{
+			_logger.LogError("Failed to fetch IP for container {Id}: {Error}", id, result.Error);
+			return result.Error;
+		}
+		
+		var addresses = result.Data.Split(" ").Select(ip => ip.Trim());
 
 		return addresses.First(addr => _networkAdapter.IsInSubnets(addr));
 	}
