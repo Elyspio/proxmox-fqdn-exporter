@@ -48,6 +48,11 @@ jobs:
                     echo "$log" >> $GITHUB_OUTPUT
                     echo "EOF" >> $GITHUB_OUTPUT    
 
+            -   name: Create tar.gz archive
+                id: create_archive
+                working-directory: Proxmox.Fqdn.Exporter/publish
+                run: tar -czf proxmox.fqdn.exporter.tar.gz *
+
             -   name: Create Release
                 uses: softprops/action-gh-release@v1
                 with:
@@ -58,6 +63,6 @@ jobs:
                         
                         Changelog since last release (${{ steps.get_tag.outputs.tag }}):
                         ${{ steps.get_changelog.outputs.changelog }}
-                    files: Proxmox.Fqdn.Exporter/publish/Proxmox.Fqdn.Exporter
+                    files: Proxmox.Fqdn.Exporter/publish/proxmox.fqdn.exporter.tar.gz
                 env:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
