@@ -8,11 +8,23 @@ using Proxmox.Fqdn.Exporter.Adapters;
 using Proxmox.Fqdn.Exporter.Adapters.Proxmox;
 using Proxmox.Fqdn.Exporter.Data;
 using Proxmox.Fqdn.Exporter.Options;
+using Proxmox.Fqdn.Exporter.Repositories;
 using Proxmox.Fqdn.Exporter.Services;
+using Serilog;
 
 var now = Stopwatch.GetTimestamp();
 
 var builder = Host.CreateApplicationBuilder();
+
+
+Log.Logger = new LoggerConfiguration()
+	.MinimumLevel.Debug()
+	.Enrich.FromLogContext()
+	.WriteTo.Console()
+	.WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+	.CreateLogger();
+builder.Services.AddSerilog();
+
 
 builder.Logging.AddSystemdConsole().SetMinimumLevel(LogLevel.Debug);
 
@@ -28,32 +40,17 @@ builder.Services.AddSingleton<ProcessAdapter>();
 builder.Services.AddSingleton<ConfigService>();
 builder.Services.AddSingleton<FqdnService>();
 builder.Services.AddSingleton<PiholeService>();
+builder.Services.AddSingleton<WorkflowService>();
 
 builder.Services.AddSingleton<ContainerProxmoxAdapter>();
 builder.Services.AddSingleton<VmProxmoxAdapter>();
 
+builder.Services.AddSingleton(sp => new FqdnRepository("fqdn.db", sp.GetRequiredService<ILogger<FqdnRepository>>()));
+
 var host = builder.Build();
 
-var logger = host.Services.GetRequiredService<ILogger<Program>>();
 
 var configService = host.Services.GetRequiredService<ConfigService>();
 configService.Verify();
 
-var fqdnService = host.Services.GetRequiredService<FqdnService>();
-
-
-var hostFqdn = fqdnService.GetHostFqdn();
-var vmsFqdn = fqdnService.GetVmsFqdn();
-var containersFqdn = fqdnService.GetContainersFqdn();
-
-await Task.WhenAll(hostFqdn, vmsFqdn, containersFqdn);
-
-Fqdn[] fqdn = [hostFqdn.Result, ..vmsFqdn.Result, ..containersFqdn.Result];
-
-var hostList = fqdnService.GetHostList(fqdn);
-
-
-var piholeService = host.Services.GetRequiredService<PiholeService>();
-await piholeService.UpdateCustomFqdn(hostList);
-
-logger.LogInformation("FQDN Exporter completed in {TotalSeconds} seconds.", Stopwatch.GetElapsedTime(now).TotalSeconds);
+await host.Services.GetRequiredService<WorkflowService>().Run();

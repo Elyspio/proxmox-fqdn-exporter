@@ -14,4 +14,9 @@ public class AppConfig
     ///     Export configuration options.
     /// </summary>
     public required Export Export { get; set; }
+    
+    /// <summary>
+    /// Number of minutes to retain FQDN records in the database even if they are no longer present.
+    /// </summary>
+    public required int FqdnRetentionMinutes { get; set; }
 }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 using Proxmox.Fqdn.Exporter.Adapters;
 using Proxmox.Fqdn.Exporter.Adapters.Proxmox;
+using Proxmox.Fqdn.Exporter.Data;
 
 namespace Proxmox.Fqdn.Exporter.Services;
 
@@ -22,11 +23,11 @@ public class FqdnService
 		_vmProxmoxAdapter = vmProxmoxAdapter;
 	}
 
-	public string GetHostList(Data.Fqdn[] data)
+	public string GetHostList(IFqdnWithTimestamp[] data)
 	{
 		var sb = new StringBuilder();
 
-		foreach (var fqdn in data) sb.AppendLine($"{fqdn.Ip} {fqdn.Hostname}");
+		foreach (var fqdn in data.OrderBy(f => f.Hostname)) sb.AppendLine($"{fqdn.Ip} {fqdn.Hostname}");
 
 		return sb.ToString();
 	}

@@ -70,7 +70,7 @@ public class ProcessAdapter
 		catch (Exception e)
 		{
 			_logger.LogError("Command '{Program} {Args}' failed with exit code {ExitCode}: {Error}", param.Program, param.Args, exitCode, error.Trim());
-			return new Exception($"Command '{param.Program} {param.Args}' failed with exit code {exitCode}: {error.Trim()}");
+			return new Exception($"Command '{param.Program} {param.Args}' failed with exit code {exitCode}: {error.Trim()}", e);
 		}
 	}
 
@@ -83,7 +83,7 @@ public class ProcessAdapter
 			_logger.LogError("Failed to run command as JSON: {Error}", output.Error);
 			return output.Error;
 		}
-		
+
 		return _jsonAdapter.ParseIot<T>(output, ctx);
 	}
 }

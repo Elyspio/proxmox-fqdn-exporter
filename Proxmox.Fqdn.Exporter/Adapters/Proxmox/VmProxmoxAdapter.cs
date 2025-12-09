@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Proxmox.Fqdn.Exporter.Abstractions.Exceptions;
 using Proxmox.Fqdn.Exporter.Abstractions.Interfaces.Adapters;
 using Proxmox.Fqdn.Exporter.Abstractions.Technical;
 using Proxmox.Fqdn.Exporter.Data;
@@ -27,12 +28,12 @@ public class VmProxmoxAdapter : IProxmoxAdapter
 
 		var elements = new List<ProxmoxElement>();
 
-		if(!result.Success)
+		if (!result.Success)
 		{
 			_logger.LogError("Failed to fetch Proxmox VMs: {Error}", result.Error);
 			return elements;
 		}
-		
+
 		foreach (var line in result.Data.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
 		{
 			_logger.LogDebug("Processing line: {Line}", line);
@@ -53,12 +54,20 @@ public class VmProxmoxAdapter : IProxmoxAdapter
 
 		var vmConfigs = await _processAdapter.RunAsJson<NetworkGetInterfacesResult[]>(runParameters, NetworkGetInterfacesContext.Default);
 
-		if (vmConfigs.Success)
+		if (!vmConfigs.Success) return vmConfigs.Error;
+		
+		var ip = vmConfigs.Data.SelectMany(x => x.Ips).FirstOrDefault(f => f.Type == "ipv4" && _networkAdapter.IsInSubnets(f.Address))?.Address;
+
+
+		if (ip is null)
 		{
-			return vmConfigs.Data.SelectMany(x => x.Ips).First(f => f.Type == "ipv4" && _networkAdapter.IsInSubnets(f.Address)).Address;
+			_logger.LogError("No valid IP found for vm with id {Id}. Available IPs: {Ips}", id, string.Join(", ", vmConfigs.Data.SelectMany(x => x.Ips).Select(i => i.Address)));
+
+			return new NoIpFoundException(ProxmoxElementType.Vm, id);
 		}
 
-		return vmConfigs.Error;
+		return ip;
+
 	}
 
 	/// <inheritdoc />
